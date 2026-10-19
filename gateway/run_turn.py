@@ -4189,15 +4189,15 @@ class GatewayTurnMixin:
     async def _run_agent_notify_long_running(
         self, disp: GatewayRunner._RunAgentDisplay, turn_ctx: TurnContext, _executor_task_holder: list,
     ) -> None:
-        """Periodic "still working" heartbeat, edited in place where supported. Stops once this run
-        no longer owns the session slot or the executor finished. ``_executor_task_holder[0]`` is
-        bound just after this task is scheduled (reads as None until then).
-
-        Interval: agent.gateway_notify_interval / HERMES_AGENT_NOTIFY_INTERVAL (default 180s; 0 or
-        long_running_notifications=off disables)."""
+        """Heartbeat until the run loses its session slot or its late-bound executor finishes.
+        Uses turn config, then env (180s); interval <= 0 or long_running_notifications=off disables."""
         from gateway.run import _float_env, _interim_metadata, _non_conversational_metadata
         _notify_start = time.time()
         _NOTIFY_INTERVAL = _float_env("HERMES_AGENT_NOTIFY_INTERVAL", 180)
+        _agent_config = disp.user_config.get("agent")
+        if isinstance(_agent_config, dict):
+            with suppress(TypeError, ValueError, OverflowError):
+                _NOTIFY_INTERVAL = float(_agent_config.get("gateway_notify_interval"))
         _long_running_mode = disp._display_surface_mode("long_running_notifications", default=True, allow_generic=True)
         if _NOTIFY_INTERVAL <= 0 or _long_running_mode == "off":
             return
