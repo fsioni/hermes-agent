@@ -25,7 +25,10 @@ def heartbeat(monkeypatch):
 @pytest.mark.asyncio
 async def test_native_heartbeat_keeps_each_profiles_interval(heartbeat):
     runner, sleep = heartbeat
-    for profile, interval in [("secondary", 60), ("secondary", 0), ("other", 120), ("secondary", 60)]:
+    for profile, interval in [
+        ("secondary", 60), ("secondary", 0), ("other", 120),
+        ("secondary", 0.25), ("secondary", 60),
+    ]:
         config = {"agent": {"gateway_notify_interval": interval}}
         disp = SimpleNamespace(user_config=config, _display_surface_mode=lambda *a, **kw: "on")
         ctx = TurnContext(
@@ -53,6 +56,9 @@ async def test_native_heartbeat_keeps_each_profiles_interval(heartbeat):
     {"agent": {"gateway_notify_interval": "invalid"}},
     {"agent": {"gateway_notify_interval": ""}},
     {"agent": {"gateway_notify_interval": []}},
+    {"agent": {"gateway_notify_interval": float("nan")}},
+    {"agent": {"gateway_notify_interval": float("inf")}},
+    {"agent": {"gateway_notify_interval": float("-inf")}},
 ])
 async def test_native_heartbeat_falls_back_to_environment(heartbeat, config):
     runner, sleep = heartbeat
